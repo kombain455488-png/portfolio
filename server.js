@@ -1,58 +1,61 @@
 ﻿require("dotenv").config();
 
-
-const express =
-    require("express");
-
-
-const path =
-    require("path");
-
-
-const puppeteer =
-    require("puppeteer");
-
+const express = require("express");
+const path = require("path");
+const puppeteer = require("puppeteer");
+const { Pool } = require("pg");
 
 const {
     generateOrderId,
     generateOrderCode
-} =
-    require("./utils/portfolio");
-
+} = require("./utils/portfolio");
 
 const {
     findMatchingDonation
-} =
-    require("./utils/donationalerts");
-
+} = require("./utils/donationalerts");
 
 const {
     renderPortfolio
-} =
-    require("./views/portfolio-template");
+} = require("./views/portfolio-template");
 
+const app = express();
 
-const app =
-    express();
+const PORT = process.env.PORT || 10000;
 
-
-const PORT =
-    process.env.PORT ||
-    10000;
+const pool = process.env.DATABASE_URL
+    ? new Pool({
+        connectionString: process.env.DATABASE_URL,
+        max: 5,
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 10000
+    })
+    : null;
 
 
 /*
-    Временное хранилище заказов.
-
-    Для первой локальной версии
-    этого достаточно.
-
-    Перед публичным запуском
-    заменим это на PostgreSQL.
+    Создание таблицы заказов.
 */
 
-const orders =
-    new Map();
+async function initDatabase() {
+
+    if (!pool) {
+        console.log("DATABASE_URL не задан. PostgreSQL отключена.");
+        return;
+    }
+
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS orders (
+            order_id TEXT PRIMARY KEY,
+            order_code TEXT UNIQUE NOT NULL,
+            portfolio JSONB NOT NULL,
+            paid BOOLEAN NOT NULL DEFAULT FALSE,
+            created_at BIGINT NOT NULL,
+            donation_id TEXT
+        );
+    `);
+
+    console.log("PostgreSQL connected.");
+}
 
 
 /*
@@ -65,166 +68,205 @@ app.use(
     })
 );
 
-
 app.use(
     express.static(
-        path.join(
-            __dirname,
-            "public"
-        )
+        path.join(__dirname, "public")
     )
 );
 
 
 /*
-    Главная
+    лавная
 */
 
-app.get(
-    "/",
-    (req, res) => {
+app.get("/", (req, res) => {
 
-        res.sendFile(
-            path.join(
-                __dirname,
-                "public",
-                "index.html"
-            )
-        );
+    res.sendFile(
+        path.join(
+            __dirname,
+            "public",
+            "index.html"
+        )
+    );
 
-    }
-);
+});
 
 
 /*
-    Проверка сервера
+    роверка сервера
 */
 
-app.get(
-    "/health",
-    (req, res) => {
+app.get("/health", async (req, res) => {
+
+    try {
+
+        if (pool) {
+            await pool.query("SELECT 1");
+        }
 
         res.json({
             ok: true
         });
 
+    } catch (error) {
+
+        console.error(error);
+
+        res.status(500).json({
+            ok: false
+        });
+
     }
-);
+
+});
 
 
 /*
     Создание заказа
 */
 
-app.post(
-    "/api/orders",
-    (req, res) => {
+app.post("/api/orders", async (req, res) => {
 
-        try {
+    try {
 
-            const data =
-                req.body;
+        const data = req.body;
 
+        if (!data.name) {
 
-            if (!data.name) {
-
-                return res.status(400).json({
-                    error:
-                        "Имя обязательно."
-                });
-
-            }
-
-
-            if (!data.profession) {
-
-                return res.status(400).json({
-                    error:
-                        "Профессия обязательна."
-                });
-
-            }
-
-
-            if (
-                data.photo &&
-                data.photo.length > 3_000_000
-            ) {
-
-                return res.status(400).json({
-                    error:
-                        "Фотография слишком большая."
-                });
-
-            }
-
-
-            const orderId =
-                generateOrderId();
-
-
-            const orderCode =
-                generateOrderCode();
-
-
-            const order = {
-
-                orderId,
-
-                orderCode,
-
-                portfolio:
-                    data,
-
-                paid:
-                    false,
-
-                createdAt:
-                    Date.now(),
-
-                donationId:
-                    null
-
-            };
-
-
-            orders.set(
-                orderId,
-                order
-            );
-
-
-            res.json({
-
-                ok: true,
-
-                orderId,
-
-                orderCode
-
-            });
-
-
-        } catch (error) {
-
-            console.error(error);
-
-
-            res.status(500).json({
-
-                error:
-                    "Не удалось создать заказ."
-
+            return res.status(400).json({
+                error: "мя обязательно."
             });
 
         }
 
+        if (!data.profession) {
+
+            return res.status(400).json({
+                error: "рофессия обязательна."
+            });
+
+        }
+
+        if (
+            data.photo &&
+            data.photo.length > 3_000_000
+        ) {
+
+            return res.status(400).json({
+                error: "Фотография слишком большая."
+            });
+
+        }
+
+        const orderId =
+            generateOrderId();
+
+        const orderCode =
+            generateOrderCode();
+
+        const createdAt =
+            Date.now();
+
+
+        /*
+            PostgreSQL
+        */
+
+        if (pool) {
+
+            await pool.query(
+                `
+                INSERT INTO orders
+                (
+                    order_id,
+                    order_code,
+                    portfolio,
+                    paid,
+                    created_at,
+                    donation_id
+                )
+                VALUES
+                ($1, $2, $3::jsonb, false, $4, NULL)
+                `,
+                [
+                    orderId,
+                    orderCode,
+                    JSON.stringify(data),
+                    createdAt
+                ]
+            );
+
+        }
+
+
+        res.json({
+            ok: true,
+            orderId,
+            orderCode
+        });
+
+
+    } catch (error) {
+
+        console.error(
+            "Create order error:",
+            error
+        );
+
+        res.status(500).json({
+            error: "е удалось создать заказ."
+        });
+
     }
-);
+
+});
 
 
 /*
-    Проверка оплаты
+    олучение заказа из PostgreSQL
+*/
+
+async function getOrder(orderId) {
+
+    if (!pool) {
+        return null;
+    }
+
+    const result = await pool.query(
+        `
+        SELECT
+            order_id,
+            order_code,
+            portfolio,
+            paid,
+            created_at,
+            donation_id
+        FROM orders
+        WHERE order_id = $1
+        `,
+        [orderId]
+    );
+
+    if (result.rows.length === 0) {
+        return null;
+    }
+
+    const row = result.rows[0];
+
+    return {
+        orderId: row.order_id,
+        orderCode: row.order_code,
+        portfolio: row.portfolio,
+        paid: row.paid,
+        createdAt: Number(row.created_at),
+        donationId: row.donation_id
+    };
+
+}
+
+
+/*
+    роверка оплаты
 */
 
 app.get(
@@ -234,7 +276,7 @@ app.get(
         try {
 
             const order =
-                orders.get(
+                await getOrder(
                     req.params.orderId
                 );
 
@@ -242,10 +284,7 @@ app.get(
             if (!order) {
 
                 return res.status(404).json({
-
-                    error:
-                        "Заказ не найден."
-
+                    error: "аказ не найден."
                 });
 
             }
@@ -254,22 +293,20 @@ app.get(
             if (order.paid) {
 
                 return res.json({
-
                     paid: true
-
                 });
 
             }
 
 
+            /*
+                аказ действует 2 часа.
+            */
+
             const age =
                 Date.now() -
                 order.createdAt;
 
-
-            /*
-                Заказ действует 2 часа.
-            */
 
             if (
                 age >
@@ -277,21 +314,15 @@ app.get(
             ) {
 
                 return res.json({
-
                     paid: false,
-
                     expired: true
-
                 });
 
             }
 
 
             /*
-                Если DonationAlerts
-                ещё не настроен,
-                просто сообщаем, что
-                оплату проверить нельзя.
+                DonationAlerts пока не настроен.
             */
 
             if (
@@ -300,11 +331,8 @@ app.get(
             ) {
 
                 return res.json({
-
                     paid: false,
-
                     notConfigured: true
-
                 });
 
             }
@@ -319,35 +347,34 @@ app.get(
             if (!donation) {
 
                 return res.json({
-
                     paid: false
-
                 });
 
             }
 
 
-            order.paid =
-                true;
+            /*
+                тмечаем заказ оплаченным.
+            */
 
-
-            order.donationId =
-                donation.id;
-
-
-            orders.set(
-                order.orderId,
-                order
+            await pool.query(
+                `
+                UPDATE orders
+                SET
+                    paid = true,
+                    donation_id = $1
+                WHERE order_id = $2
+                `,
+                [
+                    String(donation.id),
+                    order.orderId
+                ]
             );
 
 
             return res.json({
-
                 paid: true,
-
-                donationId:
-                    donation.id
-
+                donationId: donation.id
             });
 
 
@@ -358,12 +385,8 @@ app.get(
                 error
             );
 
-
             res.status(500).json({
-
-                error:
-                    "Ошибка проверки оплаты."
-
+                error: "шибка проверки оплаты."
             });
 
         }
@@ -373,75 +396,67 @@ app.get(
 
 
 /*
-    Информация о заказе
+    нформация о заказе
 */
 
 app.get(
     "/api/orders/:orderId",
-    (req, res) => {
+    async (req, res) => {
 
-        const order =
-            orders.get(
-                req.params.orderId
-            );
+        try {
+
+            const order =
+                await getOrder(
+                    req.params.orderId
+                );
 
 
-        if (!order) {
+            if (!order) {
 
-            return res.status(404).json({
+                return res.status(404).json({
+                    error: "аказ не найден."
+                });
 
-                error:
-                    "Заказ не найден."
+            }
 
+
+            res.json({
+                orderId: order.orderId,
+                orderCode: order.orderCode,
+                paid: order.paid
+            });
+
+
+        } catch (error) {
+
+            console.error(error);
+
+            res.status(500).json({
+                error: "шибка получения заказа."
             });
 
         }
-
-
-        res.json({
-
-            orderId:
-                order.orderId,
-
-            orderCode:
-                order.orderCode,
-
-            paid:
-                order.paid
-
-        });
 
     }
 );
 
 
 /*
-    Получить только оплаченный заказ
+    олучить только оплаченный заказ
 */
 
-function getPaidOrder(
-    orderId
-) {
+async function getPaidOrder(orderId) {
 
     const order =
-        orders.get(
-            orderId
-        );
-
+        await getOrder(orderId);
 
     if (!order) {
-
         return null;
-
     }
-
 
     if (!order.paid) {
-
         return null;
-
     }
-
 
     return order;
 
@@ -454,44 +469,53 @@ function getPaidOrder(
 
 app.get(
     "/download/:orderId/html",
-    (req, res) => {
+    async (req, res) => {
 
-        const order =
-            getPaidOrder(
-                req.params.orderId
+        try {
+
+            const order =
+                await getPaidOrder(
+                    req.params.orderId
+                );
+
+
+            if (!order) {
+
+                return res.status(403).send(
+                    "плата не подтверждена."
+                );
+
+            }
+
+
+            const html =
+                renderPortfolio(
+                    order.portfolio
+                );
+
+
+            res.setHeader(
+                "Content-Type",
+                "text/html; charset=utf-8"
             );
 
+            res.setHeader(
+                "Content-Disposition",
+                `attachment; filename="portfolio-${order.orderCode}.html"`
+            );
 
-        if (!order) {
+            res.send(html);
 
-            return res.status(403).send(
-                "Оплата не подтверждена."
+
+        } catch (error) {
+
+            console.error(error);
+
+            res.status(500).send(
+                "е удалось подготовить HTML."
             );
 
         }
-
-
-        const html =
-            renderPortfolio(
-                order.portfolio
-            );
-
-
-        res.setHeader(
-            "Content-Type",
-            "text/html; charset=utf-8"
-        );
-
-
-        res.setHeader(
-            "Content-Disposition",
-            `attachment; filename="portfolio-${order.orderCode}.html"`
-        );
-
-
-        res.send(
-            html
-        );
 
     }
 );
@@ -506,7 +530,7 @@ app.get(
     async (req, res) => {
 
         const order =
-            getPaidOrder(
+            await getPaidOrder(
                 req.params.orderId
             );
 
@@ -514,7 +538,7 @@ app.get(
         if (!order) {
 
             return res.status(403).send(
-                "Оплата не подтверждена."
+                "плата не подтверждена."
             );
 
         }
@@ -533,17 +557,11 @@ app.get(
 
             browser =
                 await puppeteer.launch({
-
                     headless: true,
-
                     args: [
-
                         "--no-sandbox",
-
                         "--disable-setuid-sandbox"
-
                     ]
-
                 });
 
 
@@ -554,33 +572,21 @@ app.get(
             await page.setContent(
                 html,
                 {
-                    waitUntil:
-                        "networkidle0"
+                    waitUntil: "networkidle0"
                 }
             );
 
 
             const pdf =
                 await page.pdf({
-
-                    format:
-                        "A4",
-
-                    printBackground:
-                        true,
-
+                    format: "A4",
+                    printBackground: true,
                     margin: {
-
                         top: "0",
-
                         right: "0",
-
                         bottom: "0",
-
                         left: "0"
-
                     }
-
                 });
 
 
@@ -592,16 +598,12 @@ app.get(
                 "application/pdf"
             );
 
-
             res.setHeader(
                 "Content-Disposition",
                 `attachment; filename="portfolio-${order.orderCode}.pdf"`
             );
 
-
-            res.send(
-                pdf
-            );
+            res.send(pdf);
 
 
         } catch (error) {
@@ -609,9 +611,7 @@ app.get(
             if (browser) {
 
                 try {
-
                     await browser.close();
-
                 } catch {}
 
             }
@@ -624,7 +624,7 @@ app.get(
 
 
             res.status(500).send(
-                "Не удалось создать PDF."
+                "е удалось создать PDF."
             );
 
         }
@@ -634,34 +634,51 @@ app.get(
 
 
 /*
-    Запускаем сервер
+    апуск сервера
 */
 
-app.listen(
-    PORT,
-    "0.0.0.0",
-    () => {
+async function startServer() {
 
-        console.log("");
-        console.log(
-            "============================================"
+    try {
+
+        await initDatabase();
+
+        app.listen(
+            PORT,
+            "0.0.0.0",
+            () => {
+
+                console.log("");
+                console.log(
+                    "============================================"
+                );
+                console.log(
+                    " Portfolio Builder started!"
+                );
+                console.log(
+                    "============================================"
+                );
+                console.log("");
+                console.log(
+                    `Server running on port ${PORT}`
+                );
+                console.log("");
+
+            }
         );
 
-        console.log(
-            " Portfolio Builder started!"
+    } catch (error) {
+
+        console.error(
+            "Database startup error:",
+            error
         );
 
-        console.log(
-            "============================================"
-        );
-
-        console.log("");
-
-        console.log(
-            `Local URL: http://localhost:${PORT}`
-        );
-
-        console.log("");
+        process.exit(1);
 
     }
-);
+
+}
+
+
+startServer();

@@ -1,4 +1,4 @@
-﻿{
+{
   "name": "portfolio-generator",
   "version": "1.0.0",
   "description": "Simple portfolio generator with HTML, PDF and DonationAlerts payment verification",
@@ -13,6 +13,7 @@
   "dependencies": {
     "dotenv": "^16.4.7",
     "express": "^5.1.0",
+    "pg": "^8.23.0",
     "puppeteer": "^25.8.0"
   }
 }

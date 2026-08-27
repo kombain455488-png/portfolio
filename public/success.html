@@ -1,0 +1,193 @@
+﻿<!DOCTYPE html>
+
+<html lang="ru">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        Портфолио готово
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="/style.css"
+    >
+
+</head>
+
+
+<body>
+
+
+<header class="header">
+
+    <div class="container header-inner">
+
+        <div class="logo">
+            Portfolio<span>Builder</span>
+        </div>
+
+    </div>
+
+</header>
+
+
+<main class="container">
+
+
+    <div
+        style="
+            max-width: 600px;
+            margin: 100px auto;
+            text-align: center;
+        "
+    >
+
+
+        <div class="payment-icon">
+            ✓
+        </div>
+
+
+        <h1>
+            Портфолио готово!
+        </h1>
+
+
+        <p class="muted">
+            Оплата подтверждена.
+            Теперь ты можешь скачать свои файлы.
+        </p>
+
+
+        <div
+            id="buttons"
+            style="margin-top: 30px;"
+        ></div>
+
+
+        <p
+            id="error"
+            class="payment-status"
+        ></p>
+
+
+    </div>
+
+
+</main>
+
+
+<script>
+
+const params =
+    new URLSearchParams(
+        window.location.search
+    );
+
+
+const orderId =
+    params.get("order");
+
+
+const buttons =
+    document.getElementById(
+        "buttons"
+    );
+
+
+const errorElement =
+    document.getElementById(
+        "error"
+    );
+
+
+async function loadOrder() {
+
+    if (!orderId) {
+
+        errorElement.textContent =
+            "Заказ не найден.";
+
+        return;
+
+    }
+
+
+    try {
+
+        const response =
+            await fetch(
+                `/api/orders/${encodeURIComponent(orderId)}`
+            );
+
+
+        const order =
+            await response.json();
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                order.error
+            );
+
+        }
+
+
+        if (!order.paid) {
+
+            errorElement.textContent =
+                "Оплата ещё не подтверждена.";
+
+            return;
+
+        }
+
+
+        buttons.innerHTML = `
+
+            <a
+                href="/download/${encodeURIComponent(orderId)}/html"
+                class="primary-button"
+            >
+                Скачать HTML
+            </a>
+
+
+            <a
+                href="/download/${encodeURIComponent(orderId)}/pdf"
+                class="secondary-button"
+            >
+                Скачать PDF
+            </a>
+
+        `;
+
+
+    } catch (error) {
+
+        errorElement.textContent =
+            error.message ||
+            "Ошибка загрузки заказа.";
+
+    }
+
+}
+
+
+loadOrder();
+
+</script>
+
+
+</body>
+
+</html>

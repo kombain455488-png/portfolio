@@ -1,0 +1,44 @@
+﻿services:
+
+  - type: web
+
+    name: portfolio-generator
+
+    runtime: node
+
+    plan: free
+
+    buildCommand: npm install
+
+    startCommand: npm start
+
+    healthCheckPath: /health
+
+    envVars:
+
+      - key: NODE_ENV
+        value: production
+
+      - key: DONATION_AMOUNT
+        value: "5"
+
+      - key: DONATION_CURRENCY
+        value: EUR
+
+      - key: BASE_URL
+        sync: false
+
+      - key: DONATION_ALERTS_CLIENT_ID
+        sync: false
+
+      - key: DONATION_ALERTS_CLIENT_SECRET
+        sync: false
+
+      - key: DONATION_ALERTS_ACCESS_TOKEN
+        sync: false
+
+      - key: DONATION_ALERTS_REFRESH_TOKEN
+        sync: false
+
+      - key: SESSION_SECRET
+        generateValue: true

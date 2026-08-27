@@ -1,0 +1,449 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Portfolio Builder</title>
+
+    <link
+        rel="stylesheet"
+        href="/style.css"
+    >
+
+</head>
+
+
+<body>
+
+
+<header class="header">
+
+    <div class="container header-inner">
+
+        <div class="logo">
+            Portfolio<span>Builder</span>
+        </div>
+
+        <div class="header-note">
+            Красивое портфолио за несколько минут
+        </div>
+
+    </div>
+
+</header>
+
+
+<main class="container">
+
+
+    <section class="hero">
+
+        <p class="eyebrow">
+            PORTFOLIO GENERATOR
+        </p>
+
+        <h1>
+            Создай профессиональное
+            портфолио
+        </h1>
+
+        <p class="hero-text">
+            Заполни форму, посмотри результат
+            и получи готовые HTML и PDF файлы.
+        </p>
+
+    </section>
+
+
+    <div class="builder">
+
+
+        <!-- FORM -->
+
+        <section class="form-card">
+
+            <h2>
+                Твоя информация
+            </h2>
+
+            <p class="muted">
+                Заполни только те поля,
+                которые хочешь показать.
+            </p>
+
+
+            <form id="portfolioForm">
+
+
+                <div class="field">
+
+                    <label>
+                        Имя
+                    </label>
+
+                    <input
+                        type="text"
+                        id="name"
+                        placeholder="Александр Иванов"
+                        required
+                    >
+
+                </div>
+
+
+                <div class="field">
+
+                    <label>
+                        Профессия
+                    </label>
+
+                    <input
+                        type="text"
+                        id="profession"
+                        placeholder="Frontend Developer"
+                        required
+                    >
+
+                </div>
+
+
+                <div class="field">
+
+                    <label>
+                        Город
+                    </label>
+
+                    <input
+                        type="text"
+                        id="location"
+                        placeholder="Amsterdam, Netherlands"
+                    >
+
+                </div>
+
+
+                <div class="field">
+
+                    <label>
+                        О себе
+                    </label>
+
+                    <textarea
+                        id="about"
+                        rows="5"
+                        placeholder="Расскажи о себе..."
+                    ></textarea>
+
+                </div>
+
+
+                <div class="field">
+
+                    <label>
+                        Навыки
+                    </label>
+
+                    <input
+                        type="text"
+                        id="skills"
+                        placeholder="JavaScript, HTML, CSS, Figma"
+                    >
+
+                    <small>
+                        Разделяй навыки запятыми.
+                    </small>
+
+                </div>
+
+
+                <div class="field">
+
+                    <label>
+                        Опыт работы
+                    </label>
+
+                    <textarea
+                        id="experience"
+                        rows="6"
+                        placeholder="2023-2026 - Frontend Developer&#10;Компания XYZ&#10;&#10;Разработка веб-приложений..."
+                    ></textarea>
+
+                </div>
+
+
+                <div class="field">
+
+                    <label>
+                        Образование
+                    </label>
+
+                    <textarea
+                        id="education"
+                        rows="4"
+                        placeholder="University of Amsterdam&#10;Computer Science, 2020-2024"
+                    ></textarea>
+
+                </div>
+
+
+                <div class="field">
+
+                    <label>
+                        Проекты
+                    </label>
+
+                    <textarea
+                        id="projects"
+                        rows="6"
+                        placeholder="Portfolio Builder - приложение для создания портфолио&#10;&#10;E-commerce Website - интернет-магазин..."
+                    ></textarea>
+
+                </div>
+
+
+                <div class="field">
+
+                    <label>
+                        Email
+                    </label>
+
+                    <input
+                        type="email"
+                        id="email"
+                        placeholder="hello@example.com"
+                    >
+
+                </div>
+
+
+                <div class="field">
+
+                    <label>
+                        Телефон
+                    </label>
+
+                    <input
+                        type="text"
+                        id="phone"
+                        placeholder="+31 6 12345678"
+                    >
+
+                </div>
+
+
+                <div class="field">
+
+                    <label>
+                        Website
+                    </label>
+
+                    <input
+                        type="url"
+                        id="website"
+                        placeholder="https://example.com"
+                    >
+
+                </div>
+
+
+                <div class="field">
+
+                    <label>
+                        LinkedIn
+                    </label>
+
+                    <input
+                        type="url"
+                        id="linkedin"
+                        placeholder="https://linkedin.com/in/example"
+                    >
+
+                </div>
+
+
+                <div class="field">
+
+                    <label>
+                        GitHub
+                    </label>
+
+                    <input
+                        type="url"
+                        id="github"
+                        placeholder="https://github.com/example"
+                    >
+
+                </div>
+
+
+                <div class="field">
+
+                    <label>
+                        Фотография
+                    </label>
+
+                    <input
+                        type="file"
+                        id="photo"
+                        accept="image/*"
+                    >
+
+                    <small>
+                        JPG/PNG. Максимум 2 MB.
+                    </small>
+
+                </div>
+
+
+                <button
+                    type="submit"
+                    class="primary-button"
+                >
+                    Создать предпросмотр
+                </button>
+
+
+            </form>
+
+        </section>
+
+
+        <!-- PREVIEW -->
+
+        <section class="preview-card">
+
+
+            <div class="preview-header">
+
+                <div>
+
+                    <h2>
+                        Предпросмотр
+                    </h2>
+
+                    <p class="muted">
+                        Финальный файл будет доступен
+                        после оплаты.
+                    </p>
+
+                </div>
+
+
+                <span class="preview-badge">
+                    PREVIEW
+                </span>
+
+            </div>
+
+
+            <div id="previewContainer">
+
+                <div class="empty-preview">
+
+                    <div class="empty-icon">
+                        ✦
+                    </div>
+
+                    <h3>
+                        Здесь появится портфолио
+                    </h3>
+
+                    <p>
+                        Заполни форму слева.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <!-- PAYMENT -->
+
+            <div
+                id="paymentPanel"
+                class="payment-panel hidden"
+            >
+
+                <div class="payment-icon">
+                    ✓
+                </div>
+
+
+                <h3>
+                    Портфолио готово
+                </h3>
+
+
+                <p>
+                    Для получения полного HTML и PDF
+                    необходимо оплатить файл.
+                </p>
+
+
+                <div class="order-code">
+
+                    Код заказа:
+
+                    <strong id="orderCode">
+                    </strong>
+
+                </div>
+
+
+                <p class="payment-instruction">
+
+                    При оплате обязательно укажи
+                    этот код в сообщении к донату.
+
+                </p>
+
+
+                <a
+                    id="paymentButton"
+                    class="primary-button payment-button"
+                    href="https://www.donationalerts.com/r/southnsg"
+                    target="_blank"
+                    rel="noopener"
+                >
+                    Перейти к оплате
+                </a>
+
+
+                <button
+                    id="checkPaymentButton"
+                    class="secondary-button"
+                >
+                    Я оплатил - проверить
+                </button>
+
+
+                <div
+                    id="paymentStatus"
+                    class="payment-status"
+                ></div>
+
+
+            </div>
+
+
+        </section>
+
+
+    </div>
+
+
+</main>
+
+
+<script src="/app.js"></script>
+
+</body>
+
+</html>
